@@ -16,6 +16,61 @@ VirtualBox [doesn't support SSE4.1](https://www.virtualbox.org/ticket/8651), whi
 
 Proceeed only after checking the link above.
 
+### Additional Prerequisites for zbroker component
+
+~~~~
+wget https://github.com/zeromq/zeromq4-x/archive/v4.0.4.tar.gz
+tar xf v4.0.4.tar.gz
+cd zeromq4-x-4.0.4/
+./autogen.sh
+./configure
+make
+sudo make install
+sudo ldconfig
+
+git clone https://github.com/zerovm/libzmtp
+cd libzmtp
+./autogen.sh
+./configure
+make
+sudo make install
+sudo ldconfig
+
+git clone https://github.com/zerovm/czmq
+cd czmq
+./autogen.sh
+./configure
+make
+sudo make install
+sudo ldconfig
+
+git clone https://github.com/zerovm/zyre
+cd zyre
+./autogen.sh
+./configure
+make
+sudo make install
+sudo ldconfig
+
+git clone https://github.com/zerovm/zbroker
+cd zbroker
+./autogen.sh
+./configure
+make
+sudo make install
+cd clients
+sudo make install
+sudo ldconfig
+
+git clone https://github.com/zerovm/zvm-zpipes
+cd zvm-zpipes
+./autogen.sh
+./configure
+make
+sudo make install
+sudo ldconfig
+~~~~
+
 ### Eclipse CDT installation
    1. If your system doesn't have JRE, install a recent JRE. 
    2. Download Eclipse CDT from the [Eclipse download site][eclipse-dl]. No installation necessary, just unpack and run executable.
