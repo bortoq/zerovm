@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <errno.h>
+#include <assert.h>
 #include "src/platform/signal.h"
 #include "src/main/setup.h"
 #include "src/main/config.h"
@@ -168,7 +169,7 @@ static int SignalHandlerAdd(SignalHandler func)
 {
   int id = 0;
 
-  ZLOGFAIL(func == NULL, EFAULT, FAILED_MSG);
+  assert(func != NULL);
 
   /* If we have room... */
   if(s_FreeList)
