@@ -147,8 +147,6 @@ static enum SignalResult SignalHandleAll(int signum, void *ctx)
   /* set zerovm state */
   if(signum == SIGALRM)
     g_snprintf(msg, SIGNAL_STRLEN, "session timeout");
-  else if(signum == SIGXFSZ)
-    g_snprintf(msg, SIGNAL_STRLEN, "disk quota exceeded");
   else
     g_snprintf(msg, SIGNAL_STRLEN,
         "Signal %d from %strusted code: Halting at 0x%012lX", signum,
