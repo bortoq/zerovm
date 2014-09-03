@@ -78,7 +78,7 @@ static void MakeTrapProxy()
 
   /* allocate page for proxy */
   p = mmap(PROXY_PTR, PROXY_SIZE, PROT_WRITE, ABSOLUTE_MMAP, -1, 0);
-  ZLOGFAIL(PROXY_PTR != p, errno, "cannot allocate proxy");
+  ZLOGFAIL(PROXY_PTR != p, ZERR_MEM, "cannot allocate proxy");
 
   /* populate proxy area with halts */
   memset(PROXY_PTR, HALT_OPCODE, PROXY_SIZE);
@@ -89,7 +89,7 @@ static void MakeTrapProxy()
 
   /* change proxy protection */
   i = Zmprotect(PROXY_PTR, PROXY_SIZE, PROT_READ | PROT_EXEC | PROT_LOCK);
-  ZLOGFAIL(0 != i, i, "cannot set proxy protection");
+  ZLOGFAIL(0 != i, ZERR_MEM, "cannot set proxy protection");
 }
 
 /* initialize trampoline using given thunk address */
@@ -101,7 +101,7 @@ static void SetTrampoline()
   /* change protection of area to RW */
   i = Zmprotect((void*)(MEM_START + NACL_TRAMPOLINE_START),
       NACL_TRAMPOLINE_SIZE, PROT_READ | PROT_WRITE);
-  ZLOGFAIL(0 != i, i, "cannot make trampoline writable");
+  ZLOGFAIL(0 != i, ZERR_MEM, "cannot make trampoline writable");
 
   /* create trampoline call pattern */
   *(uintptr_t*)(pattern + TRAMP_IDX) = (uintptr_t)PROXY_PTR;
@@ -121,7 +121,7 @@ static void SetTrampoline()
   /* change protection of area to RXL */
   i = Zmprotect((void*)(MEM_START + NACL_TRAMPOLINE_START),
       NACL_TRAMPOLINE_SIZE, PROT_READ | PROT_EXEC | PROT_LOCK);
-  ZLOGFAIL(0 != i, i, "cannot make trampoline executable");
+  ZLOGFAIL(0 != i, ZERR_MEM, "cannot make trampoline executable");
 }
 
 /* free call proxy */
@@ -137,7 +137,7 @@ void MakeUserSpace()
 
   /* get 84gb at the fixed address */
   p = mmap((void*)UNTRUSTED_START, UNTRUSTED_SIZE, PROT_NONE, ABSOLUTE_MMAP, -1, 0);
-  ZLOGFAIL((void*)UNTRUSTED_START != p, errno, "cannot allocate 84gb");
+  ZLOGFAIL((void*)UNTRUSTED_START != p, ZERR_MEM, "cannot allocate 84gb");
 
   /* give advice to kernel */
   i = madvise((void*)UNTRUSTED_START, UNTRUSTED_SIZE, MADV_DONTNEED);
@@ -160,7 +160,7 @@ static void SetStack()
   /* change protection of stack to RWL */
   i = Zmprotect((void*)(MEM_START + FOURGIG - STACK_SIZE),
       STACK_SIZE, PROT_READ | PROT_WRITE | PROT_LOCK);
-  ZLOGFAIL(0 != i, i, "cannot set stack protection");
+  ZLOGFAIL(0 != i, ZERR_MEM, "cannot set stack protection");
 }
 
 /* set user manifest and initialize heap */
@@ -210,7 +210,7 @@ static void SetManifest(const struct Manifest *manifest)
    */
   i = CommandPtr()->quit_after_load ? PROT_READ | PROT_LOCK : PROT_READ;
   i = Zmprotect(user, size, i);
-  ZLOGFAIL(0 != i, i, "cannot set manifest protection");
+  ZLOGFAIL(0 != i, ZERR_MEM, "cannot set manifest protection");
 
   g_free(channels);
 }
@@ -224,18 +224,18 @@ static void SetHeap(const struct Manifest *manifest)
 
   /* fail if memory size is invalid */
   ZLOGFAIL(manifest->mem_size <= 0 || manifest->mem_size > FOURGIG,
-      ENOMEM, "invalid memory size");
+      ZERR_MFT_DEF, "invalid memory size");
 
   /* calculate user heap size (must be allocated next to the data_end) */
   p = (void*) ROUNDUP_64K(NACL_TRAMPOLINE_END);
   heap = manifest->mem_size - STACK_SIZE;
   heap = ROUNDUP_64K(heap) - ROUNDUP_64K(NACL_TRAMPOLINE_END);
-  ZLOGFAIL(heap <= MIN_HEAP_SIZE, ENOMEM, "user heap size is too small");
+  ZLOGFAIL(heap <= MIN_HEAP_SIZE, ZERR_MEM, "user heap size is too small");
 
   /* make heap RW */
   p = (void*) NaClUserToSys(NACL_TRAMPOLINE_END);
   i = Zmprotect(p, heap, PROT_READ | PROT_WRITE);
-  ZLOGFAIL(0 != i, i, "cannot protection user heap");
+  ZLOGFAIL(0 != i, ZERR_MEM, "cannot protection user heap");
   heap_end = NaClSysToUser((uintptr_t) p + heap);
 }
 
@@ -263,7 +263,7 @@ static void PatchForOldAPI(struct Manifest *manifest)
     /* make user manifest writable */
     p = (void*)NaClUserToSys(MANIFEST_PTR);
     i = Zmprotect(p, NACL_MAP_PAGESIZE, PROT_READ | PROT_WRITE);
-    ZLOGFAIL(0 != i, i, "cannot set user manifest writable");
+    ZLOGFAIL(0 != i, ZERR_MEM, "cannot set user manifest writable");
 
     /* edit user manifest "heap_size" */
     ((struct UserManifest64*)p)->heap_size -= NACL_MAP_PAGESIZE;
@@ -271,20 +271,20 @@ static void PatchForOldAPI(struct Manifest *manifest)
 
     /* re-protect user manifest */
     i = Zmprotect(p, NACL_MAP_PAGESIZE, PROT_READ);
-    ZLOGFAIL(0 != i, i, "cannot protect user manifest");
+    ZLOGFAIL(0 != i, ZERR_MEM, "cannot protect user manifest");
   }
 
   /* make page with user manifest pointer writable */
   p = (void*)NaClUserToSys(MANIFEST_PTR - NACL_MAP_PAGESIZE);
   i = Zmprotect(p, NACL_MAP_PAGESIZE, PROT_READ | PROT_WRITE);
-  ZLOGFAIL(0 != i, i, "cannot set compatibility user manifest pointer");
+  ZLOGFAIL(0 != i, ZERR_MEM, "cannot set compatibility user manifest pointer");
 
   /* set user manifest pointer */
   *(uint32_t*)NaClUserToSys(OLD_MFT_PTR) = MANIFEST_PTR;
 
   /* protect user manifest pointer */
   i = Zmprotect(p, NACL_MAP_PAGESIZE, PROT_READ | PROT_LOCK);
-  ZLOGFAIL(0 != i, i, "cannot protect compatibility user manifest pointer");
+  ZLOGFAIL(0 != i, ZERR_MEM, "cannot protect compatibility user manifest pointer");
 }
 #endif
 

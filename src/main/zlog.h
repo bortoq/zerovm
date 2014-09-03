@@ -21,6 +21,7 @@
 
 #include <syslog.h>
 #include "src/main/tools.h"
+#include "src/main/retcodes.h"
 
 EXTERN_C_BEGIN
 

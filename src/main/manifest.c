@@ -154,14 +154,14 @@ int64_t ToInt(char *a)
   int64_t result;
   char dbg[BIG_ENOUGH_STRING];
 
-  ZLOGFAIL(a == NULL, EFAULT, "empty numeric value '%s'", a);
+  ZLOGFAIL(a == NULL, ZERR_MFT_DEF, "empty numeric value '%s'", a);
 
   errno = 0;
   a = g_strstrip(a);
   strncpy(dbg, a, ARRAY_SIZE(dbg));
 
   result = g_ascii_strtoll(a, &a, 0);
-  ZLOGFAIL(*a != '\0' || errno != 0, EFAULT,
+  ZLOGFAIL(*a != '\0' || errno != 0, ZERR_MFT_DEF,
       "invalid numeric value '%s'", dbg);
 
   return result;
@@ -188,14 +188,14 @@ static void Version(struct Manifest *manifest, char *value)
   manifest->version = g_strdup(g_strstrip(value));
   if(g_strcmp0(MANIFEST_VERSION, manifest->version) != 0)
     if(g_strcmp0(OLD_VERSION, manifest->version) != 0)
-      MFTFAIL(1, EFAULT, "invalid manifest version");
+      MFTFAIL(1, ZERR_MFT_DEF, "invalid manifest version");
 }
 #else
 /* test manifest version */
 static void Version(struct Manifest *manifest, char *value)
 {
   MFTFAIL(g_strcmp0(MANIFEST_VERSION, g_strstrip(value)) != 0,
-      EFAULT, "invalid manifest version");
+      ZERR_MFT_DEF, "invalid manifest version");
 }
 #endif
 
@@ -232,13 +232,13 @@ static void Memory(struct Manifest *manifest, char *value)
   /* parse value */
   tokens = g_strsplit(value, VALUE_DELIMITER, MemoryTokensNumber);
   MFTFAIL(tokens[MemoryTokensNumber] != NULL || tokens[MemoryTag] == NULL,
-      EFAULT, "invalid memory token");
+      ZERR_MFT_STX, "invalid memory token");
 
   manifest->mem_size = ToInt(tokens[MemorySize]);
   tag = ToInt(tokens[MemoryTag]);
 
   /* initialize manifest field */
-  MFTFAIL(tag != 0 && tag != 1, EFAULT, "invalid memory etag token");
+  MFTFAIL(tag != 0 && tag != 1, ZERR_MFT_DEF, "invalid memory etag token");
 
   manifest->mem_tag = tag == 0 ? NULL : TagCtor();
   g_strfreev(tokens);
@@ -261,7 +261,7 @@ static void Broker(struct Manifest *manifest, char *value)
 
 static void Job(struct Manifest *manifest, char *value)
 {
-  MFTFAIL(strlen(value) > UNIX_PATH_MAX, EFAULT, "too long Job path");
+  MFTFAIL(strlen(value) > UNIX_PATH_MAX, ZERR_MFT_DEF, "too long Job path");
   manifest->job = g_strdup(g_strstrip(value));
 }
 
@@ -286,7 +286,7 @@ static void OldChannel(struct Manifest *manifest, char **tokens)
   struct ChannelDesc *channel = g_malloc0(sizeof *channel);
 
   MFTFAIL(CountTokens(tokens) != OldChannelTokensNumber,
-      EFAULT, "invalid channel tokens number");
+      ZERR_MFT_STX, "invalid channel tokens number");
 
   /* strip passed tokens */
   for(i = 0; tokens[i] != NULL; ++i)
@@ -304,7 +304,7 @@ static void OldChannel(struct Manifest *manifest, char **tokens)
   else
   {
     MFTFAIL(g_str_has_prefix(tokens[OldName], NAME_PREFIX_NET) == 0,
-        EFAULT, "only absolute path channels are allowed");
+        ZERR_MFT_DEF, "only absolute path channels are allowed");
     channel->protocol = ProtoOpaque;
     channel->name = g_strdup(tokens[OldName] + sizeof NAME_PREFIX_NET);
   }
@@ -318,7 +318,7 @@ static void OldChannel(struct Manifest *manifest, char **tokens)
   for(i = 0; i < LimitsNumber; ++i)
   {
     channel->limits[i] = ToInt(tokens[i + OldGets]);
-    MFTFAIL(channel->limits[i] < 0, EFAULT,
+    MFTFAIL(channel->limits[i] < 0, ZERR_MFT_DEF,
         "negative limits for %s", channel->alias);
   }
 
@@ -345,7 +345,7 @@ static void Channel(struct Manifest *manifest, char *value)
     return;
   }
 
-  MFTFAIL(deprecated, EFAULT, "mixed version manifest detected");
+  MFTFAIL(deprecated, ZERR_MFT_STX, "mixed version manifest detected");
   for(i = 0; tokens[i] != NULL; ++i)
     g_strstrip(tokens[i]);
 
@@ -361,7 +361,7 @@ static void Channel(struct Manifest *manifest, char *value)
   else
   {
     MFTFAIL(g_str_has_prefix(tokens[OldName], NAME_PREFIX_NET) == 0,
-        EFAULT, "only absolute path channels are allowed");
+        ZERR_MFT_STX, "only absolute path channels are allowed");
     channel->protocol = ProtoOpaque;
     channel->name = g_strdup(tokens[OldName] + sizeof NAME_PREFIX_NET);
   }
@@ -375,7 +375,7 @@ static void Channel(struct Manifest *manifest, char *value)
   for(i = 0; i < LimitsNumber; ++i)
   {
     channel->limits[i] = ToInt(tokens[i + Gets]);
-    MFTFAIL(channel->limits[i] < 0, EFAULT,
+    MFTFAIL(channel->limits[i] < 0, ZERR_MFT_DEF,
         "negative limits for %s", channel->alias);
   }
 
@@ -397,7 +397,7 @@ static void Channel(struct Manifest *manifest, char *value)
     g_strstrip(tokens[i]);
 
   MFTFAIL(tokens[ChannelTokensNumber] != NULL || tokens[PutSize] == NULL,
-      EFAULT, "invalid channel tokens number");
+      ZERR_MFT_STX, "invalid channel tokens number");
 
   /*
    * set name and protocol (network or local). exact protocol
@@ -411,7 +411,7 @@ static void Channel(struct Manifest *manifest, char *value)
   else
   {
     MFTFAIL(g_str_has_prefix(tokens[OldName], NAME_PREFIX_NET) == 0,
-        EFAULT, "only absolute path channels are allowed");
+        ZERR_MFT_DEF, "only absolute path channels are allowed");
     channel->protocol = ProtoOpaque;
     channel->name = g_strdup(tokens[OldName] + sizeof NAME_PREFIX_NET);
   }
@@ -425,7 +425,7 @@ static void Channel(struct Manifest *manifest, char *value)
   for(i = 0; i < LimitsNumber; ++i)
   {
     channel->limits[i] = ToInt(tokens[i + Gets]);
-    MFTFAIL(channel->limits[i] < 0, EFAULT,
+    MFTFAIL(channel->limits[i] < 0, ZERR_MFT_DEF,
         "negative limits for %s", channel->alias);
   }
 
@@ -444,9 +444,9 @@ static void CheckCounters(int *counters, int n)
   while(--n)
   {
     ZLOGFAIL(counters[n] == 0 && (CHECK_KEYWORDS[n] & 1),
-        EFAULT, "%s not specified", XSTR(KEYWORDS, n));
+        ZERR_MFT_STX, "%s not specified", XSTR(KEYWORDS, n));
     ZLOGFAIL(counters[n] > 1 && (CHECK_KEYWORDS[n] & 2),
-        EFAULT, "duplicate %s keyword", XSTR(KEYWORDS, n));
+        ZERR_MFT_STX, "duplicate %s keyword", XSTR(KEYWORDS, n));
   }
 }
 
@@ -476,7 +476,7 @@ struct Manifest *ManifestTextCtor(char *text)
       /* switch invoking functions by the keyword */
 #define XSWITCH(a) switch(GetKey(tokens[Key])) {a};
 #define X(a, o, s) case Key##a: ++counters[Key##a]; a(manifest, tokens[Value]); \
-    MFTFAIL(*tokens[Value] == 0, EFAULT, "%s has no value", tokens[Key]); break;
+    MFTFAIL(*tokens[Value] == 0, ZERR_MFT_STX, "%s has no value", tokens[Key]); break;
       XSWITCH(KEYWORDS)
 #undef X
     }
@@ -489,7 +489,7 @@ struct Manifest *ManifestTextCtor(char *text)
 
   /* "Broker" depends on "Node" existence */
   ZLOGFAIL(manifest->broker != NULL && manifest->node == NULL,
-      EFAULT, "broker specified but node is absent");
+      ZERR_MFT_STX, "broker specified but node is absent");
 
   return manifest;
 }
@@ -500,10 +500,10 @@ struct Manifest *ManifestCtor(const char *name)
   char buf[MANIFEST_SIZE_LIMIT] = {0};
   FILE *h = fopen(name, "r");
 
-  ZLOGFAIL(h == NULL, ENOENT, "manifest: %s", strerror(errno));
+  ZLOGFAIL(h == NULL, ZERR_IO, "manifest: %s", strerror(errno));
   size = fread(buf, 1, MANIFEST_SIZE_LIMIT, h);
-  ZLOGFAIL(size < 1, EIO, "manifest: %s", strerror(errno));
-  ZLOGFAIL(size < MIN_MFT_SIZE, EFAULT, "manifest is too small");
+  ZLOGFAIL(size < 1, ZERR_IO, "manifest: %s", strerror(errno));
+  ZLOGFAIL(size < MIN_MFT_SIZE, ZERR_MFT_STX, "manifest is too small");
   fclose(h);
 
   return ManifestTextCtor(buf);

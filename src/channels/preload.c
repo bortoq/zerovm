@@ -41,7 +41,7 @@ static void SetChannelSource(struct ChannelDesc *channel)
   SET(S_ISFIFO, FIFO)
   SET(S_ISLNK, Link)
   SET(S_ISSOCK, Socket)
-  ZLOGFAIL(1, EFAULT, "cannot detect source type of %s", channel->name);
+  ZLOGFAIL(1, ZERR_ESO, "cannot detect source type of %s", channel->name);
 }
 
 int PreloadChannelDtor(struct ChannelDesc *channel)
@@ -80,7 +80,7 @@ static void PreallocateChannel(const struct ChannelDesc *channel)
 
   if(CommandPtr()->preload_allocation_disable) return;
   code = ftruncate(handle, channel->limits[PutSizeLimit]);
-  ZLOGFAIL(code == -1, errno, "cannot preallocate %s", channel->alias);
+  ZLOGFAIL(code == -1, ZERR_IO, "cannot preallocate %s", channel->alias);
 }
 
 /* preload given character/FIFO device to channel */
@@ -91,13 +91,13 @@ static void CharacterChannel(struct ChannelDesc* channel)
   int h;
 
   ZLOGS(LOG_DEBUG, "preload character %s", channel->alias);
-  ZLOGFAIL(!IS_RO(channel) && !IS_WO(channel), EINVAL,
+  ZLOGFAIL(!IS_RO(channel) && !IS_WO(channel), ZERR_MFT_DEF,
       "%s has invalid i/o type", channel->alias);
 
   /* open file */
   h = open(channel->name, flags[CH_RW_TYPE(channel)]);
   channel->handle = fdopen(h, mode[CH_RW_TYPE(channel)]);
-  ZLOGFAIL(channel->handle == NULL, errno, "cannot open %s", channel->name);
+  ZLOGFAIL(channel->handle == NULL, ZERR_IO, "cannot open %s", channel->name);
 
   /* set channel attributes */
   channel->size = 0;
@@ -115,7 +115,7 @@ static void RegularChannel(struct ChannelDesc* channel)
       h = open(channel->name, O_RDONLY, CHANNEL_RIGHTS);
       channel->handle = GINT_TO_POINTER(h);
       channel->size = GetFileSize(channel->name);
-      ZLOGFAIL(channel->size < 0, EFAULT, "cannot open %s", channel->name);
+      ZLOGFAIL(channel->size < 0, ZERR_IO, "cannot open %s", channel->name);
       break;
 
     case 2: /* write only. existing file will be overwritten */
@@ -127,17 +127,17 @@ static void RegularChannel(struct ChannelDesc* channel)
       break;
 
     case 3: /* cdr or full random access */
-      ZLOGFAIL(channel->type == SGetSPut, EFAULT,
+      ZLOGFAIL(channel->type == SGetSPut, ZERR_MFT_DEF,
           "sequential channels cannot have r/w access");
-      ZLOGFAIL(channel->type == SGetRPut, EFAULT,
+      ZLOGFAIL(channel->type == SGetRPut, ZERR_MFT_DEF,
           "sequential read / random write channels not supported");
 
       /* open file and ensure that putpos is not greater than the file size */
       h = open(channel->name, O_RDWR | O_CREAT, CHANNEL_RIGHTS);
       channel->handle = GINT_TO_POINTER(h);
       channel->size = GetFileSize(channel->name);
-      ZLOGFAIL(channel->size < 0, EFAULT, "cannot open %s", channel->name);
-      ZLOGFAIL(channel->putpos > channel->size, EFAULT,
+      ZLOGFAIL(channel->size < 0, ZERR_IO, "cannot open %s", channel->name);
+      ZLOGFAIL(channel->putpos > channel->size, ZERR_ESO,
           "%s size is less then specified append position", channel->name);
 
       /* file does not exist */
@@ -149,12 +149,12 @@ static void RegularChannel(struct ChannelDesc* channel)
       break;
 
     default:
-      ZLOGFAIL(1, EINVAL, "%s has invalid i/o type", channel->alias);
+      ZLOGFAIL(1, ZERR_MFT_DEF, "%s has invalid i/o type", channel->alias);
       break;
   }
 
   ZLOGFAIL(GPOINTER_TO_INT(channel->handle) < 0,
-      errno, "%s open error", channel->name);
+      ZERR_IO, "%s open error", channel->name);
 }
 
 void PreloadChannelCtor(struct ChannelDesc *channel)
@@ -177,7 +177,7 @@ void PreloadChannelCtor(struct ChannelDesc *channel)
       CharacterChannel(channel);
       break;
     default:
-      ZLOGFAIL(1, EPROTONOSUPPORT, "invalid %s source type %d",
+      ZLOGFAIL(1, ZERR_MFT_DEF, "invalid %s source type %d",
           channel->alias, channel->type);
       break;
   }

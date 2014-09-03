@@ -45,7 +45,7 @@ static void SetTimeout(struct Manifest *manifest)
 {
   assert(manifest != NULL);
 
-  ZLOGFAIL(manifest->timeout < 1, EFAULT, "invalid timeout %d", manifest->timeout);
+  ZLOGFAIL(manifest->timeout < 1, ZERR_MFT_DEF, "invalid timeout %d", manifest->timeout);
   alarm(manifest->timeout);
 }
 
@@ -53,7 +53,7 @@ static void SetTimeout(struct Manifest *manifest)
 static void LowerOwnPriority()
 {
   int i = setpriority(PRIO_PROCESS, 0, ZEROVM_PRIORITY);
-  ZLOGFAIL(i != 0, errno, "cannot set zerovm priority");
+  ZLOGFAIL(i != 0, ZERR_SYS, "cannot set zerovm priority");
 }
 
 /*
@@ -62,7 +62,7 @@ static void LowerOwnPriority()
  */
 static void GiveUpPrivileges()
 {
-  ZLOGFAIL(getuid() == 0, EPERM, "zerovm is not permitted to run as root");
+  ZLOGFAIL(getuid() == 0, ZERR_SYS, "zerovm is not permitted to run as root");
 }
 
 void LastDefenseLine(struct Manifest *manifest)
@@ -136,13 +136,13 @@ static void Boot(struct Manifest *manifest)
     int handle;
 
     size = GetFileSize(manifest->boot);
-    ZLOGFAIL(size < 0, EIO, "cannot get boot size");
+    ZLOGFAIL(size < 0, ZERR_IO, "cannot get boot size");
     buffer = (uint8_t*)UserHeapEnd() - ROUNDUP_64K(size);
 
     handle = open(manifest->boot, O_RDONLY);
-    ZLOGFAIL(handle < 0, EIO, "cannot open %s", manifest->boot);
+    ZLOGFAIL(handle < 0, ZERR_IO, "cannot open %s", manifest->boot);
     ZLOGFAIL(read(handle, buffer, size) != size,
-        EIO, "%s read error", manifest->boot);
+        ZERR_IO, "%s read error", manifest->boot);
   }
   /* load default boot */
   else
@@ -156,9 +156,9 @@ static void Boot(struct Manifest *manifest)
 
   /* validate boot and set untrusted context */
   i = Validate(buffer, size, NaClSysToUser((uintptr_t)buffer));
-  ZLOGFAIL(i != 0, ENOEXEC, "boot validation failed");
+  ZLOGFAIL(i != 0, ZERR_NACL, "boot validation failed");
   i = Zmprotect(buffer, ROUNDUP_64K(size), PROT_READ | PROT_EXEC);
-  ZLOGFAIL(i != 0, EFAULT, "cannot protect boot");
+  ZLOGFAIL(i != 0, ZERR_MEM, "cannot protect boot");
   ThreadContextCtor(nacl_user, NaClSysToUser((uintptr_t)buffer),
       MEM_START + ((uintptr_t)1U << ADDR_BITS));
 }

@@ -44,7 +44,7 @@ void ZTraceCtor()
 
   /* open ztrace file */
   ztrace_log = fopen(CommandPtr()->ztrace_name, "a");
-  ZLOGFAIL(ztrace_log == NULL, errno, "cannot open %s", CommandPtr()->ztrace_name);
+  ZLOGFAIL(ztrace_log == NULL, ZERR_IO, "cannot open %s", CommandPtr()->ztrace_name);
 
   /* initialize ztrace buffer */
   ztrace_buf = g_string_sized_new(BIG_ENOUGH_STRING);

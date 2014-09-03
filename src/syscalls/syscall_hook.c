@@ -63,7 +63,7 @@ NORETURN void SyscallHook()
   SetThreadCtxSp(nacl_user, sp_user);
 
   /* fail if nacl syscall received */
-  ZLOGFAIL(sysnum != 0, EINVAL, "nacl syscall #%d received", sysnum);
+  ZLOGFAIL(sysnum != 0, ZERR_NACL, "nacl syscall #%d received", sysnum);
 
   /*
    * syscall_args must point to the first argument of a system call.
@@ -79,5 +79,5 @@ NORETURN void SyscallHook()
 
   /* give control to the user side */
   ContextSwitch(nacl_user);
-  ZLOGFAIL(1, EFAULT, "the unreachable has been reached");
+  ZLOGFAIL(1, ZERR_ESO, "the unreachable has been reached");
 }

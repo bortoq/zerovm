@@ -23,7 +23,7 @@ void *TagCtor()
   GChecksum *ctx;
 
   ctx = g_checksum_new(TAG_ENCRYPTION);
-  ZLOGFAIL(ctx == NULL, EFAULT, "error initializing tag context");
+  ZLOGFAIL(ctx == NULL, ZERR_ESO, "error initializing tag context");
   return ctx;
 }
 

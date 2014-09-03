@@ -94,7 +94,7 @@ void InitSwitchToApp()
   assert((unsigned)cpu < ARRAY_SIZE_SAFE(name));
 
   ZLOGS(LOG_DEBUG, "%s cpu detected", name[cpu]);
-  ZLOGFAIL(cpu == 0, EFAULT, "zerovm needs at least SSE CPU");
+  ZLOGFAIL(cpu == 0, ZERR_PLAT, "zerovm needs at least SSE CPU");
   ZLOGIF(cpu > 7, "zerovm running on CPU with partial support. UNSAFE!");
   ContextSwitch = cpu < 7 ? SwitchSSE : SwitchAVX;
 }

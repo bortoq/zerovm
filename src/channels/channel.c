@@ -38,7 +38,7 @@ int64_t GetFileSize(const char *name)
 /* if the function called there is duplicate */
 static void DuplicateKey(gpointer key)
 {
-  ZLOGFAIL(tree_reset == 0, EFAULT, "%s is already allocated", key);
+  ZLOGFAIL(tree_reset == 0, ZERR_MFT_STX, "%s is already allocated", key);
 }
 
 /* reset aliases tree */
@@ -75,7 +75,7 @@ int32_t ChannelRead(struct ChannelDesc *channel,
       FetchData(channel, buffer, size);
       break;
     default: /* design error */
-      ZLOGFAIL(1, EFAULT, "invalid channel source %s", channel->alias);
+      ZLOGFAIL(1, ZERR_ESO, "invalid channel source %s", channel->alias);
       break;
   }
 
@@ -117,12 +117,12 @@ int32_t ChannelWrite(struct ChannelDesc *channel,
       result = SendData(channel, buffer, size);
       break;
     default: /* design error */
-      ZLOGFAIL(1, EFAULT, "invalid channel source %s", channel->alias);
+      ZLOGFAIL(1, ZERR_ESO, "invalid channel source %s", channel->alias);
       break;
   }
 
   /* accounting */
-  ZLOGFAIL(result < 0, EIO, "%s failed to write: %s",
+  ZLOGFAIL(result < 0, ZERR_IO, "%s failed to write: %s",
       channel->alias, strerror(errno));
   channel->counters[PutSizeLimit] += result;
   ++channel->counters[PutsLimit];
@@ -172,7 +172,7 @@ static void ChannelCtor(struct ChannelDesc *channel)
   /* check alias for duplicates and update the list */
   g_tree_insert(aliases, channel->alias, NULL);
 
-  ZLOGFAIL(channel->type > RGetRPut, EFAULT,
+  ZLOGFAIL(channel->type > RGetRPut, ZERR_MFT_DEF,
       "%s has invalid type %d", channel->alias, channel->type);
 
   /* mount the channel */
@@ -215,9 +215,9 @@ void ChannelsCtor(struct Manifest *manifest)
    * channels, minimum - RESERVED_CHANNELS
    */
   ZLOGFAIL(manifest->channels->len >= MAX_CHANNELS_NUMBER,
-      ENFILE, "channels number reached maximum");
+      ZERR_MFT_STX, "channels number reached maximum");
   ZLOGFAIL(manifest->channels->len < MIN_CHANNELS_NUMBER,
-      EFAULT, "not enough channels: %d", manifest->channels->len);
+      ZERR_MFT_STX, "not enough channels: %d", manifest->channels->len);
 
   /* mount channels */
   for(i = 0; i < manifest->channels->len; ++i)
@@ -229,7 +229,7 @@ void ChannelsCtor(struct Manifest *manifest)
   /* check if all standard channels are specified */
   ZLOGFAIL(manifest->channels->len <= STDERR_FILENO
       || g_strcmp0(CHANNEL(manifest, STDERR_FILENO)->alias, STDERR),
-      EFAULT, "missing standard channels in manifest");
+      ZERR_MFT_STX, "missing standard channels in manifest");
   ResetAliases();
 }
 

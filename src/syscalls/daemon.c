@@ -86,7 +86,7 @@ static void UpdateSession(struct Manifest *manifest)
   /* read manifest */
   cmd = GetCommand();
   ZLOG(LOG_INSANE, "job manifest: %s", cmd);
-  ZLOGFAIL(cmd == NULL, EFAULT, "invalid manifest received");
+  ZLOGFAIL(cmd == NULL, ZERR_MFT_STX, "invalid manifest received");
   tmp = ManifestTextCtor(cmd);
   g_free(cmd);
 
@@ -107,10 +107,10 @@ static void UpdateSession(struct Manifest *manifest)
   for(i = 0; i < manifest->channels->len; ++i)
   {
 #define CHECK(a) ZLOGFAIL(CHANNEL(manifest, i)->a != CHANNEL(tmp, i)->a, \
-    EFAULT, "difference in %s", CHANNEL(manifest, i)->a)
+    ZERR_MFT_DEF, "difference in %s", CHANNEL(manifest, i)->a)
 
     ZLOGFAIL(strcmp(CHANNEL(manifest, i)->alias, CHANNEL(tmp, i)->alias) != 0,
-        EFAULT, "difference in %s", CHANNEL(manifest, i)->alias);
+        ZERR_MFT_DEF, "difference in %s", CHANNEL(manifest, i)->alias);
     CHECK(type);
     CHECK(limits[0]);
     CHECK(limits[1]);
@@ -159,13 +159,13 @@ static int Daemonize(struct Manifest *manifest)
   sa.sa_handler = SIG_IGN;
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = 0;
-  ZLOGFAIL(sigaction(SIGHUP, &sa, NULL) < 0, EFAULT, "can't ignore SIGHUP");
+  ZLOGFAIL(sigaction(SIGHUP, &sa, NULL) < 0, ZERR_SIG, "can't ignore SIGHUP");
 
   /*
    * Change the current working directory to the root so
    * we won't prevent file systems from being unmounted.
    */
-  ZLOGFAIL(chdir("/") < 0, EFAULT, "can't change directory to /");
+  ZLOGFAIL(chdir("/") < 0, ZERR_SYS, "can't change directory to /");
 
   /* finalize modules with handles before handles down */
   ztrace_name = strdup(CommandPtr()->ztrace_name);
@@ -177,16 +177,16 @@ static int Daemonize(struct Manifest *manifest)
   close(STDERR_FILENO);
 
   /* Attach standard channels to /dev/null */
-  ZLOGFAIL(open("/dev/null", O_RDWR) != 0, EFAULT, "can't set stdin to /dev/null");
-  ZLOGFAIL(dup(0) != 1, EFAULT, "can't set stdout to /dev/null");
-  ZLOGFAIL(dup(0) != 2, EFAULT, "can't set stderr to /dev/null");
+  ZLOGFAIL(open("/dev/null", O_RDWR) != 0, ZERR_IO, "can't set stdin to /dev/null");
+  ZLOGFAIL(dup(0) != 1, ZERR_IO, "can't set stdout to /dev/null");
+  ZLOGFAIL(dup(0) != 2, ZERR_IO, "can't set stderr to /dev/null");
 
   /* open the command channel */
   unlink(manifest->job);
   sock = socket(AF_UNIX, SOCK_STREAM, 0);
   strcpy(remote.sun_path, manifest->job);
-  ZLOGFAIL(bind(sock, &remote, sizeof remote) < 0, EIO, "%s", strerror(errno));
-  ZLOGFAIL(listen(sock, QUEUE_SIZE) < 0, EIO, "%s", strerror(errno));
+  ZLOGFAIL(bind(sock, &remote, sizeof remote) < 0, ZERR_IO, "%s", strerror(errno));
+  ZLOGFAIL(listen(sock, QUEUE_SIZE) < 0, ZERR_IO, "%s", strerror(errno));
 
   /* set name for daemon */
   bname = g_path_get_basename(manifest->job);
@@ -208,7 +208,7 @@ int Daemon(struct Manifest *manifest)
 
   /* can the daemon be started? */
   if(manifest->job == NULL) return -1;
-  ZLOGFAIL(ReportSetupPtr()->zvm_code != 0, EFAULT, "broken session");
+  ZLOGFAIL(ReportSetupPtr()->zvm_code != 0, ZERR_ESO, "broken session");
 
   /* finalize user session. report daemon pid */
   umask(0);

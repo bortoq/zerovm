@@ -38,7 +38,7 @@ void PrefetchChannelCtor(struct ChannelDesc *channel)
 {
   ZLOGS(LOG_DEBUG, "PrefetchChannelCtor(%s)", channel->alias);
   channel->handle = zvm_pipe_open(channel->name);
-  ZLOGFAIL(channel->handle == NULL, EIO, "cannot open %s", channel->name);
+  ZLOGFAIL(channel->handle == NULL, ZERR_IO, "cannot open %s", channel->name);
   channel->size = 0;
   ZLOGS(LOG_DEBUG, "%s opened", channel->alias);
 }

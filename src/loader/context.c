@@ -68,7 +68,7 @@ INLINE uintptr_t NaClUserToSysAddrNullOkay(uintptr_t uaddr)
 
 INLINE uintptr_t NaClUserToSys(uintptr_t uaddr)
 {
-  ZLOGFAIL(0 == uaddr || ((uintptr_t) 1U << ADDR_BITS) <= uaddr, EFAULT,
+  ZLOGFAIL(0 == uaddr || ((uintptr_t) 1U << ADDR_BITS) <= uaddr, SERR_ADDR,
       "uaddr 0x%08lx, addr space %d bits", uaddr, ADDR_BITS);
   return uaddr + MEM_START;
 }
@@ -76,7 +76,7 @@ INLINE uintptr_t NaClUserToSys(uintptr_t uaddr)
 INLINE uintptr_t NaClSysToUser(uintptr_t sysaddr)
 {
   ZLOGFAIL(MEM_START + ((uintptr_t) 1U << ADDR_BITS) <= sysaddr
-      || sysaddr < MEM_START, EFAULT,
+      || sysaddr < MEM_START, SERR_ADDR,
       "sysaddr 0x%08lx, mem_start 0x%08lx, addr space %d bits",
       sysaddr, MEM_START, ADDR_BITS);
   return sysaddr - MEM_START;

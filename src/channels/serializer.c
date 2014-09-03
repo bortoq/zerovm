@@ -62,7 +62,7 @@ struct ChannelsSerial *ChannelsSerializer(
   /* calculate and allocated buffer */
   i = manifest->channels->len * (CHANNEL_NAME_MAX + sizeof *record);
   buffer = g_malloc(i + sizeof buffer->size);
-  ZLOGFAIL(buffer == NULL, ENOMEM, "cannot allocate space for channels");
+  ZLOGFAIL(buffer == NULL, ZERR_MEM, "cannot allocate space for channels");
 
   /* set name area pointer */
   i = manifest->channels->len * sizeof *record + sizeof buffer->size;

@@ -1,4 +1,5 @@
 this test is obsolette and should be replaced with the new one: mprotect
+update: the test updated and the only thing left is to rename it
 
 subjects to tests:
 read only protection of area (should be ok)

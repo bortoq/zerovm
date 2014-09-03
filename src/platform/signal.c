@@ -25,6 +25,7 @@
 #include "src/main/setup.h"
 #include "src/main/config.h"
 #include "src/main/tools.h"
+#include "src/main/retcodes.h"
 
 /*
  * This module is based on the Posix signal model. See:
@@ -79,7 +80,8 @@ static void SignalStackRegister(void *stack)
   st.ss_size = SIGNAL_STACK_SIZE;
   st.ss_sp = ((uint8_t *) stack) + STACK_GUARD_SIZE;
   st.ss_flags = 0;
-  ZLOGFAIL(sigaltstack(&st, NULL) == -1, errno, "Failed to register signal stack");
+  ZLOGFAIL(sigaltstack(&st, NULL) == -1,
+      ZERR_SIG, "Failed to register signal stack");
 }
 
 static void SignalStackUnregister(void)
@@ -94,7 +96,8 @@ static void SignalStackUnregister(void)
   st.ss_size = 0;
   st.ss_sp = NULL;
   st.ss_flags = SS_DISABLE;
-  ZLOGFAIL(sigaltstack(&st, NULL) == -1, errno, "Failed to unregister signal stack");
+  ZLOGFAIL(sigaltstack(&st, NULL) == -1,
+      ZERR_SIG, "Failed to unregister signal stack");
 }
 
 /*
@@ -118,11 +121,11 @@ static void SignalStackAllocate(void **result)
    */
   uint8_t *stack = mmap(NULL, SIGNAL_STACK_SIZE + STACK_GUARD_SIZE,
       PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-  ZLOGFAIL(stack == MAP_FAILED, errno, "failed to allocate signal stack");
+  ZLOGFAIL(stack == MAP_FAILED, ZERR_MEM, "failed to allocate signal stack");
 
   /* We assume that the stack grows downwards. */
   ZLOGFAIL(-1 == mprotect(stack, STACK_GUARD_SIZE, PROT_NONE),
-      errno, "Failed to mprotect() the stack guard page");
+      ZERR_MEM, "Failed to mprotect() the stack guard page");
 
   *result = stack;
 }
@@ -131,7 +134,7 @@ static void SignalStackFree(void *stack)
 {
   assert(stack != NULL);
   ZLOGFAIL(munmap(stack, SIGNAL_STACK_SIZE + STACK_GUARD_SIZE) == -1,
-      errno, "Failed to munmap() signal stack");
+      ZERR_MEM, "Failed to munmap() signal stack");
 }
 
 static void FindAndRunHandler(int sig, siginfo_t *info, void *uc)
@@ -183,10 +186,10 @@ static void SignalAssertNoHandlers()
     int signum = s_Signals[i];
     struct sigaction sa;
 
-    ZLOGFAIL(-1 == sigaction(signum, NULL, &sa), errno, "sigaction() call failed");
+    ZLOGFAIL(-1 == sigaction(signum, NULL, &sa), ZERR_SIG, "sigaction() call failed");
 
     ZLOGFAIL((sa.sa_flags & SA_SIGINFO) != 0 ? sa.sa_sigaction != NULL
-        : (sa.sa_handler != SIG_DFL && sa.sa_handler != SIG_IGN), EFAULT,
+        : (sa.sa_handler != SIG_DFL && sa.sa_handler != SIG_IGN), ZERR_SIG,
         "A signal handler is registered for signal %d. Did Breakpad register this?", signum);
   }
 }
@@ -211,7 +214,7 @@ void SignalHandlerInitPlatform()
   /* Install all handlers */
   for(i = 0; i < SIGNAL_COUNT; i++)
     ZLOGFAIL(0 != sigaction(s_Signals[i], &sa, &s_OldActions[i]),
-        errno, "Failed to install handler for %d", s_Signals[i]);
+        ZERR_SIG, "Failed to install handler for %d", s_Signals[i]);
 
   /* allocate and register signal stack */
   SignalStackAllocate(&signal_stack);
