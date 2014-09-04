@@ -72,12 +72,15 @@ int32_t ChannelRead(struct ChannelDesc *channel,
         result = -errno;
       break;
     case ProtoOpaque:
-      FetchData(channel, buffer, size);
+      result = FetchData(channel, buffer, size);
       break;
     default: /* design error */
       ZLOGFAIL(1, ZERR_ESO, "invalid channel source %s", channel->alias);
       break;
   }
+
+  /* in case of i/o error session should fail */
+  ZLOGFAIL(result < 0, SERR_IO, "i/o error %d during session", result);
 
   /* update eof status */
   if(result == 0 && CH_SEQ_READABLE(channel))
@@ -120,6 +123,9 @@ int32_t ChannelWrite(struct ChannelDesc *channel,
       ZLOGFAIL(1, ZERR_ESO, "invalid channel source %s", channel->alias);
       break;
   }
+
+  /* in case of i/o error session should fail */
+  ZLOGFAIL(result < 0, SERR_IO, "i/o error %d during session", result);
 
   /* accounting */
   ZLOGFAIL(result < 0, ZERR_IO, "%s failed to write: %s",
