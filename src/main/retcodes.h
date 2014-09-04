@@ -41,10 +41,11 @@ enum {
   ZERR_ESO = 64, /* esoteric error. very rare or should not happen */
 
   /* session related return codes 65..255 */
-  SERR_IO = 65,
-  SERR_ADDR = 66,
-  SERR_SIG_8 = 67,
-  SERR_SIG_11 = 68,
+  SERR_IO = 65, /* i/o error during trap function */
+  SERR_ADDR = 66, /* incorrect user space address provided */
+  SERR_SIG = 67, /* weird signal from untrusted context */
+  SERR_SIG_8 = 68, /* SIGFPE from untrusted context */
+  SERR_SIG_11 = 69, /* SIGSEGV from untrusted context */
 };
 
 #endif /* RETCODES_H_ */

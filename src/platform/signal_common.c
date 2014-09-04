@@ -146,14 +146,26 @@ static enum SignalResult SignalHandleAll(int signum, void *ctx)
 
   /* set zerovm state */
   if(signum == SIGALRM)
+  {
     g_snprintf(msg, SIGNAL_STRLEN, "session timeout");
+
+    /* timeout is the special case. doesn't matter from where it come */
+    SessionDtor(signum, msg);
+  }
   else
     g_snprintf(msg, SIGNAL_STRLEN,
         "Signal %d from %strusted code: Halting at 0x%012lX", signum,
         SignalContextIsUntrusted(&sigCtx) ? "un" : "", sigCtx.prog_ctr);
 
-  /* in case the signal came from trusted side return different code */
-  SessionDtor(SignalContextIsUntrusted(&sigCtx) ? EINTR : ENOTTY, msg);
+  /*
+   * set zerovm return code. for trusted context return code will be just
+   * signal number. for untrusted one it should be chosen from SERR_SIG,
+   * SERR_SIG_8 or SERR_SIG_11
+   */
+  if(SignalContextIsUntrusted(&sigCtx))
+    signum = signum == 8 ? SERR_SIG_8 : signum == 11 ? SERR_SIG_11 : SERR_SIG;
+  SessionDtor(signum, msg);
+
   return NACL_SIGNAL_RETURN; /* unreachable */
 }
 
