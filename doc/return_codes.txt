@@ -1,12 +1,97 @@
 This document describes ZeroVM return codes
-(up to date 2014-08-13, needs editing)
+(up to date 2014-09-04, needs editing)
 
 normally zerovm returns 0 and it means that session terminated successfully.
-in case of error zerovm return errno(3).
+in case of error zerovm return value from the list below. please note that
+codes 1..63 reserved for zerovm setup / debugging and codes 64..255 reserved
+for the session errors
 
-special cases:
-EINTR(4) -- zerovm received signal from untrusted side
-ENOTTY(25) -- zerovm received signal from trusted side
+00. ZERR_OK. zerovm terminated successful. no attention needed.
+01. ZERR_SIG_1. SIGHUP caught. this error could come from the daemon code
+02. reserved
+03. reserved
+04. reserved
+05. reserved
+06. ZERR_SIG_6. SIGABRT. usually triggered by assert. see zbroker code
+07. reserved
+08. ZERR_SIG_8. SIGFPE. invalid operation (e.g. division by 0). not seen yet
+09. reserved
+10. reserved
+11. ZERR_SIG_11. SIGSEGV. attempt to access unavailable memory. bugreport it 
+12. reserved
+13. reserved
+14. ZERR_SIG_14. SIGALRM. session timeout. try to extend timeout in manifest
+15. reserved
+16. reserved
+17. reserved
+18. reserved
+19. reserved
+20. reserved
+21. reserved
+22. reserved
+23. reserved
+24. reserved
+25. reserved
+26. reserved
+27. reserved
+28. reserved
+29. reserved
+30. reserved
+31. reserved
+32. ZERR_IO. setup i/o error. check syslog, usually it is an invalid file related issue
+33. ZERR_MEM. memory (de)allocation or protection error. restart zerovm
+34. ZERR_SYS. system error. see syslog for details
+35. ZERR_NACL. failed validation, nacl syscall encountered e.t.c. investigate untrusted code
+36. ZERR_MFT_STX. manifest syntax error. check manifest
+37. ZERR_MFT_DEF. manifest definition error. check manifest for invalid value(s)
+38. ZERR_SIG. signal handling error. not seen yet
+39. ZERR_PLAT. invalid platform. replace hardware and restart
+40. ZERR_CH_INV. unsupported channel type. see syslog and check manifest / channel
+41. ZERR_CH_QUO. channel exhausted its limits. extend limits in manifest and restart
+42. reserved
+43. reserved
+44. reserved
+45. reserved
+46. reserved
+47. reserved
+48. reserved
+49. reserved
+51. reserved
+52. reserved
+53. reserved
+54. reserved
+55. reserved
+56. reserved
+57. reserved
+58. reserved
+59. reserved
+60. reserved
+61. reserved
+62. reserved
+63. reserved
+64. ZERR_ESO. esoteric error. should not appear. bugreport it
+65. SERR_IO. i/o error during trap function. check storage / network (zbroker) / files
+66. SERR_ADDR. incorrect user space address provided. investigate untrusted code
+67. SERR_SIG. weird signal caught from untrusted side. should not appear
+68. SERR_SIG_8. invalid operation (e.g. division by 0) from untrusted context. check untrusted code
+69. SERR_SIG_11. SIGSEGV. attempt to access unavailable memory from untrusted side. check untrusted code
+70. reserved
+..
+255. reserved
 
-other return codes usually mean that zerovm experienced problem during
-initialization
+NOTE:
+------------------------------------------------------------------------
+main reason why zerovm / session return codes list was upgraded is to provide
+fast and easy way (without visiting syslog) to know particular cause of failure.
+another reason is to give host program extensive information which allow more
+control of zerovm / session. in a few words: debugging and control.
+
+NOTE:
+------------------------------------------------------------------------
+disregard session return code (from report) if zerovm returned non zero
+
+NOTE:
+------------------------------------------------------------------------
+in the future list of return codes can be extended. existing codes will not
+change since this list should become the part of api when zerovm will be
+converted to library
