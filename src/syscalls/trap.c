@@ -137,9 +137,9 @@ static int32_t ZVMWriteHandle(struct Manifest *manifest,
   /* prevent writing beyond the limit */
   if(CH_RND_WRITEABLE(channel))
     if(offset >= channel->limits[PutSizeLimit])
-      return -EINVAL;
+      return -EDQUOT;
 
-  if(offset >= channel->size + tail) return -EINVAL;
+  if(offset >= channel->size + tail) return -EDQUOT;
   if(size > tail) size = tail;
   if(size < 1) return -EDQUOT;
 
